@@ -1,0 +1,224 @@
+import tkinter as tk
+from tkinter import messagebox, ttk
+
+# ============================
+# CLASS Produk (ENCAPSULATION)
+# ============================
+class Produk:
+    def __init__(self, nama, harga):
+        self.__nama = nama
+        self.__harga = harga
+
+    def get_nama(self):
+        return self.__nama
+
+    def get_harga(self):
+        return self.__harga
+
+    def set_harga(self, harga_baru):
+        self.__harga = harga_baru
+
+
+# ============================
+# CLASS Kasir (LOGIC)
+# ============================
+class Kasir:
+    def __init__(self):
+        self.daftar_belanja = []
+
+    def tambah_belanja(self, produk, qty):
+        self.daftar_belanja.append((produk, qty))
+
+    def hitung_total(self):
+        total = 0
+        for produk, qty in self.daftar_belanja:
+            total += produk.get_harga() * qty
+        return total
+
+    def hitung_diskon(self, total):
+        if total >= 200000:
+            return total * 0.15
+        elif total >= 100000:
+            return total * 0.10
+        elif total >= 50000:
+            return total * 0.05
+        return 0
+
+
+# ============================
+# CLASS GUI
+# ============================
+class App:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Aplikasi Kasir Warung")
+        self.root.geometry("650x550")
+
+        self.kasir = Kasir()
+
+        # ============================
+        # LIST PRODUK (DITAMBAHKAN JAJANAN PASAR)
+        # ============================
+        self.produk_list = [
+            Produk("Indomie Goreng", 3500),
+            Produk("Indomie Ayam Bawang", 3500),
+            Produk("Beras 1kg", 15000),
+            Produk("Gula 1kg", 14000),
+            Produk("Minyak Goreng 1L", 17000),
+            Produk("Teh Celup Sosro", 6000),
+            Produk("Kopi Kapal Api", 2000),
+            Produk("Air Mineral 600ml", 4000),
+            Produk("Roti Tawar", 12000),
+            Produk("Cokelat Silverqueen", 23000),
+            Produk("Susu UHT 1L", 18000),
+            Produk("Sabun Lifebuoy", 7000),
+            Produk("Shampoo Sunsilk", 9000),
+            Produk("Pasta Gigi Pepsodent", 8000),
+            Produk("Telur (1 pack)", 24000),
+            Produk("Sosis Kanzler", 35000),
+            Produk("Keju Cheddar", 16000),
+            Produk("Biskuit Roma", 9000),
+            Produk("Chitato", 8500),
+            Produk("Tepung Terigu 1kg", 13000),
+            Produk("Mie Samyang", 20000),
+            Produk("Risol", 3000),
+            Produk("Piscok", 2000),
+            Produk("Bakwan", 1500),
+            Produk("Odading", 4000),
+        ]
+
+
+        # FRAME INPUT
+        frame_input = tk.Frame(root)
+        frame_input.pack(pady=10)
+
+        tk.Label(frame_input, text="Pilih Produk:", font=("Arial", 12)).grid(row=0, column=0)
+        self.combo_produk = ttk.Combobox(frame_input, width=30,
+                                         values=[p.get_nama() for p in self.produk_list])
+        self.combo_produk.grid(row=0, column=1, padx=10)
+
+        tk.Label(frame_input, text="Qty:", font=("Arial", 12)).grid(row=1, column=0)
+        self.entry_qty = tk.Entry(frame_input, width=10)
+        self.entry_qty.grid(row=1, column=1)
+
+        tk.Button(frame_input, text="Tambah", command=self.tambah_item).grid(row=2, column=0, columnspan=2, pady=10)
+
+        # FRAME TABEL
+        self.tree = ttk.Treeview(root, columns=("Produk", "Qty", "Subtotal"), show="headings", height=12)
+        self.tree.heading("Produk", text="Produk")
+        self.tree.heading("Qty", text="Qty")
+        self.tree.heading("Subtotal", text="Subtotal")
+        self.tree.pack(pady=10)
+
+        # PEMBAYARAN
+        tk.Label(root, text="Metode Pembayaran:", font=("Arial", 12)).pack()
+        self.combo_bayar = ttk.Combobox(root, values=["CASH", "NON-CASH (QRIS / Transfer)"], width=30)
+        self.combo_bayar.pack(pady=5)
+
+        tk.Label(root, text="Jika CASH, Masukkan Uang Pembeli:", font=("Arial", 10)).pack()
+        self.entry_uang = tk.Entry(root)
+        self.entry_uang.pack()
+
+        # BUTTON TOTAL
+        tk.Button(root, text="Hitung Total", command=self.hitung_total).pack(pady=10)
+
+    # =======================================
+    # FUNCTION: TAMBAH PRODUK KE KERANJANG
+    # =======================================
+    def tambah_item(self):
+        nama_produk = self.combo_produk.get()
+        qty = self.entry_qty.get()
+
+        if nama_produk == "" or qty == "":
+            messagebox.showwarning("Warning", "Isi data dengan lengkap!")
+            return
+
+        try:
+            qty = int(qty)
+        except:
+            messagebox.showerror("Error", "Qty harus angka!")
+            return
+
+        for produk in self.produk_list:
+            if produk.get_nama() == nama_produk:
+                self.kasir.tambah_belanja(produk, qty)
+                subtotal = produk.get_harga() * qty
+                self.tree.insert("", tk.END, values=(nama_produk, qty, subtotal))
+                break
+
+        self.entry_qty.delete(0, tk.END)
+
+    # =======================================
+    # FUNCTION: HITUNG TOTAL & CETAK STRUK
+    # =======================================
+    def hitung_total(self):
+        metode = self.combo_bayar.get()
+
+        if metode == "":
+            messagebox.showwarning("Warning", "Pilih metode pembayaran!")
+            return
+
+        total = self.kasir.hitung_total()
+        diskon = self.kasir.hitung_diskon(total)
+        bayar = total - diskon
+
+        uang_pembeli = 0
+        kembalian = 0
+
+        if metode == "CASH":
+            if self.entry_uang.get() == "":
+                messagebox.showerror("Error", "Masukkan uang pembeli!")
+                return
+
+            try:
+                uang_pembeli = int(self.entry_uang.get())
+            except:
+                messagebox.showerror("Error", "Uang harus angka!")
+                return
+
+            if uang_pembeli < bayar:
+                messagebox.showerror("Error", "Uang tidak cukup!")
+                return
+
+            kembalian = uang_pembeli - bayar
+
+        # POPUP STRUK BARU
+        struk_window = tk.Toplevel(self.root)
+        struk_window.title("Struk Belanja")
+        struk_window.geometry("420x550")
+
+        text = tk.Text(struk_window, font=("Courier", 11))
+        text.pack(fill="both", expand=True)
+
+        # HEADER STRUK
+        text.insert(tk.END, "   WARUNG SEJAHTERA\n")
+        text.insert(tk.END, "--------------------------------------\n")
+
+        # ISI BELANJA
+        for produk, qty in self.kasir.daftar_belanja:
+            text.insert(
+                tk.END,
+                f"{produk.get_nama():25} x{qty:<3} Rp{produk.get_harga()*qty}\n"
+            )
+
+        # TOTAL & PEMBAYARAN
+        text.insert(tk.END, "--------------------------------------\n")
+        text.insert(tk.END, f"TOTAL        : Rp {total}\n")
+        text.insert(tk.END, f"DISKON       : Rp {diskon}\n")
+        text.insert(tk.END, f"TOTAL BAYAR  : Rp {bayar}\n")
+        text.insert(tk.END, f"PAYMENT      : {metode}\n")
+
+        if metode == "CASH":
+            text.insert(tk.END, f"UANG TUNAI   : Rp {uang_pembeli}\n")
+            text.insert(tk.END, f"KEMBALIAN    : Rp {kembalian}\n")
+
+        text.insert(tk.END, "--------------------------------------\n")
+        text.insert(tk.END, "   TERIMA KASIH TELAH BERBELANJA\n")
+
+
+# ============================
+# JALANKAN PROGRAM
+# ============================
+root = tk.Tk()
+app = App(root)
+root.mainloop()
