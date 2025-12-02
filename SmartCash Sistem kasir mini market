@@ -29,6 +29,12 @@ class Kasir:
     def tambah_belanja(self, produk, qty):
         self.daftar_belanja.append((produk, qty))
 
+    def hapus_item(self, nama_produk):
+        for i, (produk, qty) in enumerate(self.daftar_belanja):
+            if produk.get_nama() == nama_produk:
+                del self.daftar_belanja[i]
+                break
+
     def hitung_total(self):
         total = 0
         for produk, qty in self.daftar_belanja:
@@ -52,12 +58,12 @@ class App:
     def __init__(self, root):
         self.root = root
         self.root.title("Aplikasi Kasir Warung")
-        self.root.geometry("650x550")
+        self.root.geometry("650x600")
 
         self.kasir = Kasir()
 
         # ============================
-        # LIST PRODUK (DITAMBAHKAN JAJANAN PASAR)
+        # LIST PRODUK
         # ============================
         self.produk_list = [
             Produk("Indomie Goreng", 3500),
@@ -87,39 +93,49 @@ class App:
             Produk("Odading", 4000),
         ]
 
-
         # FRAME INPUT
         frame_input = tk.Frame(root)
         frame_input.pack(pady=10)
 
         tk.Label(frame_input, text="Pilih Produk:", font=("Arial", 12)).grid(row=0, column=0)
-        self.combo_produk = ttk.Combobox(frame_input, width=30,
-                                         values=[p.get_nama() for p in self.produk_list])
+        self.combo_produk = ttk.Combobox(
+            frame_input, width=30, values=[p.get_nama() for p in self.produk_list]
+        )
         self.combo_produk.grid(row=0, column=1, padx=10)
 
         tk.Label(frame_input, text="Qty:", font=("Arial", 12)).grid(row=1, column=0)
         self.entry_qty = tk.Entry(frame_input, width=10)
         self.entry_qty.grid(row=1, column=1)
 
-        tk.Button(frame_input, text="Tambah", command=self.tambah_item).grid(row=2, column=0, columnspan=2, pady=10)
+        tk.Button(frame_input, text="Tambah", command=self.tambah_item).grid(
+            row=2, column=0, columnspan=2, pady=10
+        )
 
         # FRAME TABEL
-        self.tree = ttk.Treeview(root, columns=("Produk", "Qty", "Subtotal"), show="headings", height=12)
+        self.tree = ttk.Treeview(
+            root, columns=("Produk", "Qty", "Subtotal"), show="headings", height=12
+        )
         self.tree.heading("Produk", text="Produk")
         self.tree.heading("Qty", text="Qty")
         self.tree.heading("Subtotal", text="Subtotal")
         self.tree.pack(pady=10)
 
+        # ============================
+        # FITUR DELETE PRODUK
+        # ============================
+        tk.Button(root, text="Hapus Item", command=self.hapus_item).pack(pady=5)
+
         # PEMBAYARAN
         tk.Label(root, text="Metode Pembayaran:", font=("Arial", 12)).pack()
-        self.combo_bayar = ttk.Combobox(root, values=["CASH", "NON-CASH (QRIS / Transfer)"], width=30)
+        self.combo_bayar = ttk.Combobox(
+            root, values=["CASH", "NON-CASH (QRIS / Transfer)"], width=30
+        )
         self.combo_bayar.pack(pady=5)
 
         tk.Label(root, text="Jika CASH, Masukkan Uang Pembeli:", font=("Arial", 10)).pack()
         self.entry_uang = tk.Entry(root)
         self.entry_uang.pack()
 
-        # BUTTON TOTAL
         tk.Button(root, text="Hitung Total", command=self.hitung_total).pack(pady=10)
 
     # =======================================
@@ -147,6 +163,24 @@ class App:
                 break
 
         self.entry_qty.delete(0, tk.END)
+
+    # =======================================
+    # FUNCTION: HAPUS PRODUK (FITUR BARU)
+    # =======================================
+    def hapus_item(self):
+        selected = self.tree.focus()
+
+        if selected == "":
+            messagebox.showwarning("Warning", "Pilih item yang akan dihapus!")
+            return
+
+        item = self.tree.item(selected)
+        nama_produk = item["values"][0]
+
+        self.kasir.hapus_item(nama_produk)
+        self.tree.delete(selected)
+
+        messagebox.showinfo("Info", f"{nama_produk} berhasil dihapus!")
 
     # =======================================
     # FUNCTION: HITUNG TOTAL & CETAK STRUK
@@ -182,7 +216,7 @@ class App:
 
             kembalian = uang_pembeli - bayar
 
-        # POPUP STRUK BARU
+        # POPUP STRUK
         struk_window = tk.Toplevel(self.root)
         struk_window.title("Struk Belanja")
         struk_window.geometry("420x550")
@@ -190,18 +224,15 @@ class App:
         text = tk.Text(struk_window, font=("Courier", 11))
         text.pack(fill="both", expand=True)
 
-        # HEADER STRUK
-        text.insert(tk.END, "   WARUNG SEJAHTERA\n")
+        text.insert(tk.END, "   Mini Market\n")
         text.insert(tk.END, "--------------------------------------\n")
 
-        # ISI BELANJA
         for produk, qty in self.kasir.daftar_belanja:
             text.insert(
                 tk.END,
-                f"{produk.get_nama():25} x{qty:<3} Rp{produk.get_harga()*qty}\n"
+                f"{produk.get_nama():25} x{qty:<3} Rp{produk.get_harga() * qty}\n",
             )
 
-        # TOTAL & PEMBAYARAN
         text.insert(tk.END, "--------------------------------------\n")
         text.insert(tk.END, f"TOTAL        : Rp {total}\n")
         text.insert(tk.END, f"DISKON       : Rp {diskon}\n")
